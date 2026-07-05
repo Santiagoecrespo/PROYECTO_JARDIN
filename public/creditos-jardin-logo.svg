@@ -1,0 +1,20 @@
+<svg width="110" height="105" viewBox="0 0 110 105" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="halo" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(55 52.5) rotate(90) scale(41.5)">
+      <stop stop-color="#DDF5FF"/>
+      <stop offset="1" stop-color="#A9DDF3"/>
+    </radialGradient>
+    <linearGradient id="badge" x1="55" y1="13" x2="55" y2="92" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8DD4F1"/>
+      <stop offset="1" stop-color="#5AA7D6"/>
+    </linearGradient>
+  </defs>
+  <rect width="110" height="105" rx="8" fill="transparent"/>
+  <circle cx="55" cy="52.5" r="41.5" fill="url(#halo)"/>
+  <circle cx="55" cy="52.5" r="37.5" fill="url(#badge)" stroke="#F3FBFF" stroke-width="3"/>
+  <path d="M25 25C32 18 41 15 55 15C69 15 78 18 85 25" stroke="#F8FDFF" stroke-opacity="0.8" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M25 80C33 87 43 90 55 90C67 90 77 87 85 80" stroke="#C6EEFF" stroke-opacity="0.9" stroke-width="2" stroke-linecap="round"/>
+  <text x="55" y="39" text-anchor="middle" fill="#FFF9EA" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="15.5" font-weight="700">Créditos</text>
+  <text x="55" y="57" text-anchor="middle" fill="#FFF9EA" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="18" font-weight="700">Jardín</text>
+  <text x="55" y="74" text-anchor="middle" fill="#F0FBFF" font-family="Verdana, sans-serif" font-size="6.4" font-weight="700">siempre de tu lado</text>
+</svg>
