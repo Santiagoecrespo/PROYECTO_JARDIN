@@ -38,7 +38,7 @@ const normalizeSearchValue = (value) =>
 
 const KEYWORDS = {
   name: ['apellido', 'nombre', 'cliente', 'titular', 'beneficiario'],
-  record: ['credito', 'recibo', 'numero', 'nro', 'cuenta', 'legajo', 'codigo'],
+  record: ['credito', 'recibo', 'numero', 'nro', 'cuenta', 'legajo', 'codigo', 'cto'],
 }
 
 const findColumnKey = (row, type) => {
@@ -49,6 +49,23 @@ const findColumnKey = (row, type) => {
       KEYWORDS[type].some((keyword) => normalizeSearchValue(key).includes(keyword)),
     ) || ''
   )
+}
+
+const findRecordColumnKey = (row, nameKey) => {
+  const explicitRecordKey = findColumnKey(row, 'record')
+
+  if (explicitRecordKey) {
+    return explicitRecordKey
+  }
+
+  const keys = Object.keys(row || {})
+  const nameColumnIndex = keys.indexOf(nameKey)
+
+  if (nameColumnIndex > 0) {
+    return keys[nameColumnIndex - 1]
+  }
+
+  return ''
 }
 
 const parseClientWorkbook = (XLSX, workbook) => {
@@ -68,7 +85,7 @@ const parseClientWorkbook = (XLSX, workbook) => {
   }
 
   const nameKey = findColumnKey(rows[0], 'name') || Object.keys(rows[0])[0] || ''
-  const recordKey = findColumnKey(rows[0], 'record')
+  const recordKey = findRecordColumnKey(rows[0], nameKey)
   const seenEntries = new Set()
 
   return rows
