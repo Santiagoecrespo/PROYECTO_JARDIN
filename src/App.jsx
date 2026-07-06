@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 
 const formatCurrency = (value) => {
@@ -35,6 +35,7 @@ const normalizeSearchValue = (value) =>
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .trim()
+  const normalizeRecordValue = (value) => normalizeSearchValue(value).replace(/\s+/g, '')
 
 const KEYWORDS = {
   name: ['apellido', 'nombre', 'cliente', 'titular', 'beneficiario'],
@@ -114,6 +115,28 @@ const parseClientWorkbook = (XLSX, workbook) => {
       return true
     })
     .sort((left, right) => left.name.localeCompare(right.name, 'es'))
+}
+
+const findClientByName = (catalog, value) => {
+  const normalizedValue = normalizeSearchValue(value)
+
+  if (!normalizedValue) {
+    return null
+  }
+
+  return catalog.find((client) => normalizeSearchValue(client.name) === normalizedValue) || null
+}
+
+const findClientByRecordNumber = (catalog, value) => {
+  const normalizedValue = normalizeRecordValue(value)
+
+  if (!normalizedValue) {
+    return null
+  }
+
+  return (
+    catalog.find((client) => normalizeRecordValue(client.recordNumber) === normalizedValue) || null
+  )
 }
 
 const FREQUENCY_META = {
@@ -241,6 +264,40 @@ function App() {
       .slice(0, 8)
   }, [clientCatalog, customerName])
 
+  const matchedClientByRecord = useMemo(
+    () => findClientByRecordNumber(clientCatalog, recordNumber),
+    [clientCatalog, recordNumber],
+  )
+
+  const matchedClientByName = useMemo(
+    () => findClientByName(clientCatalog, customerName),
+    [clientCatalog, customerName],
+  )
+
+  const suggestedRecordClients = useMemo(() => {
+    const query = normalizeRecordValue(recordNumber)
+
+    if (!query || !clientCatalog.length || matchedClientByRecord) {
+      return []
+    }
+
+    return clientCatalog
+      .filter((client) => normalizeRecordValue(client.recordNumber).includes(query))
+      .slice(0, 8)
+  }, [clientCatalog, matchedClientByRecord, recordNumber])
+
+  useEffect(() => {
+    if (matchedClientByRecord && matchedClientByRecord.name !== customerName) {
+      setCustomerName(matchedClientByRecord.name)
+    }
+  }, [customerName, matchedClientByRecord])
+
+  useEffect(() => {
+    if (matchedClientByName?.recordNumber && matchedClientByName.recordNumber !== recordNumber) {
+      setRecordNumber(matchedClientByName.recordNumber)
+    }
+  }, [matchedClientByName, recordNumber])
+
   const handleFrequencyChange = (event) => {
     const newFrequency = event.target.value
     setFrequency(newFrequency)
@@ -291,6 +348,15 @@ function App() {
       setClientCatalog(parsedClients)
       setCatalogFileName(file.name)
       setCatalogError('')
+
+      const clientMatchedByRecord = findClientByRecordNumber(parsedClients, recordNumber)
+      const clientMatchedByName = findClientByName(parsedClients, customerName)
+
+      if (clientMatchedByRecord) {
+        setCustomerName(clientMatchedByRecord.name)
+      } else if (clientMatchedByName?.recordNumber) {
+        setRecordNumber(clientMatchedByName.recordNumber)
+      }
     } catch (error) {
       setClientCatalog([])
       setCatalogFileName('')
@@ -306,6 +372,18 @@ function App() {
     if (client.recordNumber) {
       setRecordNumber(client.recordNumber)
     }
+  }
+
+  const handleRecordNumberChange = (event) => {
+    const nextRecordNumber = event.target.value
+
+    setRecordNumber(nextRecordNumber)
+  }
+
+  const handleCustomerNameChange = (event) => {
+    const nextCustomerName = event.target.value
+
+    setCustomerName(nextCustomerName)
   }
 
   const handlePrint = () => {
@@ -441,9 +519,36 @@ function App() {
           </div>
 
           <div className="form-grid">
-            <label>
+            <label className="client-search-field">
               <span>Número de crédito</span>
-              <input value={recordNumber} onChange={(event) => setRecordNumber(event.target.value)} />
+              <input
+                value={recordNumber}
+                placeholder={
+                  clientCatalog.length
+                    ? 'Escribe el número para buscarlo en la planilla'
+                    : 'Puedes escribir el número manualmente o cargar una planilla'
+                }
+                onChange={handleRecordNumberChange}
+              />
+              {matchedClientByRecord ? (
+                <strong className="field-success">Cliente identificado: {matchedClientByRecord.name}</strong>
+              ) : suggestedRecordClients.length > 0 ? (
+                <div className="client-suggestions">
+                  {suggestedRecordClients.map((client) => (
+                    <button
+                      type="button"
+                      key={client.id}
+                      className="suggestion-item"
+                      onClick={() => handleClientPick(client)}
+                    >
+                      <span>{client.recordNumber || 'Sin número'}</span>
+                      <strong>{client.name}</strong>
+                    </button>
+                  ))}
+                </div>
+              ) : recordNumber && clientCatalog.length ? (
+                <small className="field-hint">No hay coincidencias con ese número.</small>
+              ) : null}
             </label>
 
             <label className="full-width">
@@ -471,7 +576,7 @@ function App() {
                     ? 'Escribe parte del nombre para buscarlo en la planilla'
                     : 'Puedes escribir el nombre manualmente o cargar una planilla'
                 }
-                onChange={(event) => setCustomerName(event.target.value)}
+                onChange={handleCustomerNameChange}
               />
               {suggestedClients.length > 0 ? (
                 <div className="client-suggestions">
