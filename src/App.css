@@ -399,6 +399,46 @@
   font-weight: 700;
 }
 
+.report-success {
+  margin: 0 0 14px;
+  color: #0f6e4d;
+  font-weight: 700;
+}
+
+.image-preview-card {
+  margin-bottom: 18px;
+  padding: 18px;
+  border: 1px solid rgba(12, 78, 96, 0.12);
+  border-radius: 22px;
+  background: #f7fbfc;
+}
+
+.image-preview-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.image-preview-header h3 {
+  margin: 0;
+  color: #123241;
+}
+
+.image-preview-header p {
+  margin: 6px 0 0;
+  color: #5c7884;
+}
+
+.image-preview-image {
+  display: block;
+  width: 100%;
+  border-radius: 18px;
+  border: 1px solid rgba(18, 50, 65, 0.1);
+  background: #ffffff;
+}
+
 .receipt-sheet {
   overflow: hidden;
   border: 1px solid rgba(12, 78, 96, 0.14);
@@ -585,6 +625,10 @@
 
   .report-actions .primary-button {
     width: 100%;
+  }
+
+  .image-preview-header {
+    flex-direction: column;
   }
 }
 

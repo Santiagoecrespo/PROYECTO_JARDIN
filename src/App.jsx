@@ -178,8 +178,11 @@ function App() {
   const [clientCatalog, setClientCatalog] = useState([])
   const [catalogFileName, setCatalogFileName] = useState('')
   const [catalogError, setCatalogError] = useState('')
-  const [isDownloadingImage, setIsDownloadingImage] = useState(false)
-  const [downloadImageError, setDownloadImageError] = useState('')
+  const [previewImageUrl, setPreviewImageUrl] = useState('')
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false)
+  const [isCopyingImage, setIsCopyingImage] = useState(false)
+  const [imageActionError, setImageActionError] = useState('')
+  const [imageActionSuccess, setImageActionSuccess] = useState('')
 
   const numericBaseAmount = Number(baseAmount) || 0
   const frequencyMeta = FREQUENCY_META[frequency]
@@ -309,37 +312,73 @@ function App() {
     window.print()
   }
 
-  const handleDownloadImage = async () => {
-    if (!receiptRef.current || isDownloadingImage) {
+  const generateReceiptImage = async () => {
+    if (!receiptRef.current) {
+      throw new Error('No se encontró el recibo para generar la imagen.')
+    }
+
+    const { toPng } = await import('html-to-image')
+
+    return toPng(receiptRef.current, {
+      cacheBust: true,
+      backgroundColor: '#fffefa',
+      pixelRatio: 2,
+    })
+  }
+
+  const handlePreviewImage = async () => {
+    if (isGeneratingImage) {
       return
     }
 
-    setIsDownloadingImage(true)
-    setDownloadImageError('')
+    setIsGeneratingImage(true)
+    setImageActionError('')
+    setImageActionSuccess('')
 
     try {
-      const { toPng } = await import('html-to-image')
-      const imageUrl = await toPng(receiptRef.current, {
-        cacheBust: true,
-        backgroundColor: '#fffefa',
-        pixelRatio: 2,
-      })
-
-      const safeClientName = normalizeSearchValue(customerName).replace(/\s+/g, '-')
-      const fileNameParts = [
-        'recibo',
-        safeClientName || recordNumber || 'cliente',
-        receiptDate || today,
-      ]
-      const link = document.createElement('a')
-
-      link.href = imageUrl
-      link.download = `${fileNameParts.filter(Boolean).join('-')}.png`
-      link.click()
+      const imageUrl = await generateReceiptImage()
+      setPreviewImageUrl(imageUrl)
     } catch {
-      setDownloadImageError('No se pudo descargar la imagen del recibo.')
+      setImageActionError('No se pudo generar la vista de la imagen del recibo.')
     } finally {
-      setIsDownloadingImage(false)
+      setIsGeneratingImage(false)
+    }
+  }
+
+  const handleCopyImage = async () => {
+    if (isCopyingImage) {
+      return
+    }
+
+    setIsCopyingImage(true)
+    setImageActionError('')
+    setImageActionSuccess('')
+
+    try {
+      const imageUrl = previewImageUrl || (await generateReceiptImage())
+
+      if (!previewImageUrl) {
+        setPreviewImageUrl(imageUrl)
+      }
+
+      if (!navigator.clipboard || typeof window.ClipboardItem === 'undefined') {
+        throw new Error('Clipboard no disponible')
+      }
+
+      const response = await fetch(imageUrl)
+      const blob = await response.blob()
+
+      await navigator.clipboard.write([
+        new window.ClipboardItem({
+          [blob.type]: blob,
+        }),
+      ])
+
+      setImageActionSuccess('Imagen copiada. Ya puedes pegarla donde necesites.')
+    } catch {
+      setImageActionError('No se pudo copiar la imagen. Puedes usar la vista previa para copiarla manualmente.')
+    } finally {
+      setIsCopyingImage(false)
     }
   }
 
@@ -403,7 +442,7 @@ function App() {
 
           <div className="form-grid">
             <label>
-              <span>Número</span>
+              <span>Número de crédito</span>
               <input value={recordNumber} onChange={(event) => setRecordNumber(event.target.value)} />
             </label>
 
@@ -634,13 +673,50 @@ function App() {
             <button
               type="button"
               className="secondary-button"
-              onClick={handleDownloadImage}
-              disabled={isDownloadingImage}
+              onClick={handlePreviewImage}
+              disabled={isGeneratingImage}
             >
-              {isDownloadingImage ? 'Generando imagen...' : 'Descargar imagen'}
+              {isGeneratingImage ? 'Generando imagen...' : 'Ver imagen'}
             </button>
+            {previewImageUrl ? (
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={handleCopyImage}
+                disabled={isCopyingImage}
+              >
+                {isCopyingImage ? 'Copiando...' : 'Copiar imagen'}
+              </button>
+            ) : null}
           </div>
-          {downloadImageError ? <p className="report-error no-print">{downloadImageError}</p> : null}
+          {imageActionError ? <p className="report-error no-print">{imageActionError}</p> : null}
+          {imageActionSuccess ? <p className="report-success no-print">{imageActionSuccess}</p> : null}
+          {previewImageUrl ? (
+            <section className="image-preview-card no-print">
+              <div className="image-preview-header">
+                <div>
+                  <h3>Vista previa de la imagen</h3>
+                  <p>Puedes copiarla con el botón o desde esta vista previa.</p>
+                </div>
+                <button
+                  type="button"
+                  className="ghost-button"
+                  onClick={() => {
+                    setPreviewImageUrl('')
+                    setImageActionError('')
+                    setImageActionSuccess('')
+                  }}
+                >
+                  Cerrar vista
+                </button>
+              </div>
+              <img
+                className="image-preview-image"
+                src={previewImageUrl}
+                alt="Vista previa del recibo como imagen"
+              />
+            </section>
+          ) : null}
 
           <article className="receipt-sheet" ref={receiptRef}>
             <header className="receipt-topbar">
@@ -657,7 +733,7 @@ function App() {
               </div>
               <div className="receipt-number-boxes">
                 <div>
-                  <span>Número</span>
+                  <span>Número de crédito</span>
                   <strong>{recordNumber || '---'}</strong>
                 </div>
                 <div>
