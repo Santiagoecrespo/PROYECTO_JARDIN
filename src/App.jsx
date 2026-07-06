@@ -849,7 +849,7 @@ function App() {
               <div className="image-preview-header">
                 <div>
                   <h3>Vista previa de la imagen</h3>
-                  <p>Puedes copiarla con el botón o desde esta vista previa.</p>
+                  <p>Podes copiarla con el botón O desde esta vista previa.</p>
                 </div>
                 <button
                   type="button"
