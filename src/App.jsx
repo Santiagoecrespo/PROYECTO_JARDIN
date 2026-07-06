@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import './App.css'
 
 const formatCurrency = (value) => {
@@ -181,9 +181,7 @@ const PLAN_OPTIONS = {
   ],
 }
 
-const defaultCredits = [
-  { id: 1, concept: '', amount: 0 },
-]
+const createDefaultCredits = () => [{ id: 1, concept: '', amount: 0 }]
 
 const today = new Date().toISOString().slice(0, 10)
 
@@ -196,9 +194,10 @@ function App() {
   const [baseAmount, setBaseAmount] = useState('')
   const [frequency, setFrequency] = useState('mensual')
   const [selectedPlanId, setSelectedPlanId] = useState('4M')
-  const [credits, setCredits] = useState(defaultCredits)
+  const [credits, setCredits] = useState(createDefaultCredits)
   const [notes, setNotes] = useState('')
   const [clientCatalog, setClientCatalog] = useState([])
+  const [selectedClientId, setSelectedClientId] = useState('')
   const [catalogFileName, setCatalogFileName] = useState('')
   const [catalogError, setCatalogError] = useState('')
   const [previewImageUrl, setPreviewImageUrl] = useState('')
@@ -252,6 +251,11 @@ function App() {
     [credits],
   )
 
+  const selectedClient = useMemo(
+    () => clientCatalog.find((client) => client.id === selectedClientId) || null,
+    [clientCatalog, selectedClientId],
+  )
+
   const suggestedClients = useMemo(() => {
     const query = normalizeSearchValue(customerName)
 
@@ -269,11 +273,6 @@ function App() {
     [clientCatalog, recordNumber],
   )
 
-  const matchedClientByName = useMemo(
-    () => findClientByName(clientCatalog, customerName),
-    [clientCatalog, customerName],
-  )
-
   const suggestedRecordClients = useMemo(() => {
     const query = normalizeRecordValue(recordNumber)
 
@@ -285,18 +284,6 @@ function App() {
       .filter((client) => normalizeRecordValue(client.recordNumber).includes(query))
       .slice(0, 8)
   }, [clientCatalog, matchedClientByRecord, recordNumber])
-
-  useEffect(() => {
-    if (matchedClientByRecord && matchedClientByRecord.name !== customerName) {
-      setCustomerName(matchedClientByRecord.name)
-    }
-  }, [customerName, matchedClientByRecord])
-
-  useEffect(() => {
-    if (matchedClientByName?.recordNumber && matchedClientByName.recordNumber !== recordNumber) {
-      setRecordNumber(matchedClientByName.recordNumber)
-    }
-  }, [matchedClientByName, recordNumber])
 
   const handleFrequencyChange = (event) => {
     const newFrequency = event.target.value
@@ -353,12 +340,18 @@ function App() {
       const clientMatchedByName = findClientByName(parsedClients, customerName)
 
       if (clientMatchedByRecord) {
+        setSelectedClientId(clientMatchedByRecord.id)
         setCustomerName(clientMatchedByRecord.name)
+        setRecordNumber(clientMatchedByRecord.recordNumber)
       } else if (clientMatchedByName?.recordNumber) {
+        setSelectedClientId(clientMatchedByName.id)
         setRecordNumber(clientMatchedByName.recordNumber)
+      } else {
+        setSelectedClientId('')
       }
     } catch (error) {
       setClientCatalog([])
+      setSelectedClientId('')
       setCatalogFileName('')
       setCatalogError(error instanceof Error ? error.message : 'No se pudo leer la planilla.')
     }
@@ -367,23 +360,75 @@ function App() {
   }
 
   const handleClientPick = (client) => {
+    setSelectedClientId(client.id)
     setCustomerName(client.name)
-
-    if (client.recordNumber) {
-      setRecordNumber(client.recordNumber)
-    }
+    setRecordNumber(client.recordNumber || '')
   }
 
   const handleRecordNumberChange = (event) => {
     const nextRecordNumber = event.target.value
+    const matchedClient = findClientByRecordNumber(clientCatalog, nextRecordNumber)
 
     setRecordNumber(nextRecordNumber)
+
+    if (matchedClient) {
+      setSelectedClientId(matchedClient.id)
+      setCustomerName(matchedClient.name)
+      return
+    }
+
+    if (
+      selectedClient &&
+      normalizeRecordValue(selectedClient.recordNumber) !== normalizeRecordValue(nextRecordNumber)
+    ) {
+      setSelectedClientId('')
+
+      if (customerName === selectedClient.name) {
+        setCustomerName('')
+      }
+    }
   }
 
   const handleCustomerNameChange = (event) => {
     const nextCustomerName = event.target.value
+    const matchedClient = findClientByName(clientCatalog, nextCustomerName)
 
     setCustomerName(nextCustomerName)
+
+    if (matchedClient) {
+      setSelectedClientId(matchedClient.id)
+      setRecordNumber(matchedClient.recordNumber || '')
+      return
+    }
+
+    if (
+      selectedClient &&
+      normalizeSearchValue(selectedClient.name) !== normalizeSearchValue(nextCustomerName)
+    ) {
+      setSelectedClientId('')
+
+      if (recordNumber === selectedClient.recordNumber) {
+        setRecordNumber('')
+      }
+    }
+  }
+
+  const handleResetReceipt = () => {
+    setSelectedClientId('')
+    setRecordNumber('')
+    setCustomerName('')
+    setReceiptDate(today)
+    setUsePlanDetails(false)
+    setBaseAmount('')
+    setFrequency('mensual')
+    setSelectedPlanId(PLAN_OPTIONS.mensual[0].id)
+    setCredits(createDefaultCredits())
+    setNotes('')
+    setPreviewImageUrl('')
+    setIsGeneratingImage(false)
+    setIsCopyingImage(false)
+    setImageActionError('')
+    setImageActionSuccess('')
   }
 
   const handlePrint = () => {
@@ -772,6 +817,9 @@ function App() {
 
         <section className="panel report-panel">
           <div className="report-actions no-print">
+            <button type="button" className="secondary-button" onClick={handleResetReceipt}>
+              Nuevo recibo
+            </button>
             <button type="button" className="primary-button" onClick={handlePrint}>
               Imprimir recibo
             </button>
