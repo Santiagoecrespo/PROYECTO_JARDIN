@@ -205,6 +205,7 @@ function App() {
   const [isCopyingImage, setIsCopyingImage] = useState(false)
   const [imageActionError, setImageActionError] = useState('')
   const [imageActionSuccess, setImageActionSuccess] = useState('')
+  const [isPreviewConfirmOpen, setIsPreviewConfirmOpen] = useState(false)
 
   const numericBaseAmount = Number(baseAmount) || 0
   const frequencyMeta = FREQUENCY_META[frequency]
@@ -254,6 +255,16 @@ function App() {
   const selectedClient = useMemo(
     () => clientCatalog.find((client) => client.id === selectedClientId) || null,
     [clientCatalog, selectedClientId],
+  )
+
+  const confirmationSummary = useMemo(
+    () => ({
+      customer: customerName || 'Sin completar',
+      amount: formatCurrency(totalPaid),
+      date: formatDate(receiptDate),
+      record: recordNumber || '---',
+    }),
+    [customerName, receiptDate, recordNumber, totalPaid],
   )
 
   const suggestedClients = useMemo(() => {
@@ -427,6 +438,7 @@ function App() {
     setPreviewImageUrl('')
     setIsGeneratingImage(false)
     setIsCopyingImage(false)
+    setIsPreviewConfirmOpen(false)
     setImageActionError('')
     setImageActionSuccess('')
   }
@@ -454,7 +466,18 @@ function App() {
       return
     }
 
+    setImageActionError('')
+    setImageActionSuccess('')
+    setIsPreviewConfirmOpen(true)
+  }
+
+  const handleGeneratePreviewImage = async () => {
+    if (isGeneratingImage) {
+      return
+    }
+
     setIsGeneratingImage(true)
+    setIsPreviewConfirmOpen(false)
     setImageActionError('')
     setImageActionSuccess('')
 
@@ -869,6 +892,39 @@ function App() {
                 alt="Vista previa del recibo como imagen"
               />
             </section>
+          ) : null}
+
+          {isPreviewConfirmOpen ? (
+            <div className="modal-overlay no-print" role="presentation">
+              <section
+                className="confirmation-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="preview-confirmation-title"
+              >
+                <span className="confirmation-eyebrow">Confirmación previa</span>
+                <h3 id="preview-confirmation-title">¿Desea generar la imagen de este recibo?</h3>
+                <p>
+                  Cliente: <strong>{confirmationSummary.customer}</strong>. Monto: <strong>{confirmationSummary.amount}</strong>. Fecha: <strong>{confirmationSummary.date}</strong>. Número de crédito: <strong>{confirmationSummary.record}</strong>.
+                </p>
+                <div className="confirmation-modal-actions">
+                  <button
+                    type="button"
+                    className="ghost-button"
+                    onClick={() => setIsPreviewConfirmOpen(false)}
+                  >
+                    Modificar
+                  </button>
+                  <button
+                    type="button"
+                    className="primary-button"
+                    onClick={handleGeneratePreviewImage}
+                  >
+                    Aceptar y ver imagen
+                  </button>
+                </div>
+              </section>
+            </div>
           ) : null}
 
           <article className="receipt-sheet" ref={receiptRef}>
