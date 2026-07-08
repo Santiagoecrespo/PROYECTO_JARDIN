@@ -27,6 +27,111 @@ const formatDate = (value) => {
   )
 }
 
+const SMALL_NUMBER_WORDS = [
+  'cero',
+  'uno',
+  'dos',
+  'tres',
+  'cuatro',
+  'cinco',
+  'seis',
+  'siete',
+  'ocho',
+  'nueve',
+  'diez',
+  'once',
+  'doce',
+  'trece',
+  'catorce',
+  'quince',
+  'dieciséis',
+  'diecisiete',
+  'dieciocho',
+  'diecinueve',
+  'veinte',
+  'veintiuno',
+  'veintidós',
+  'veintitrés',
+  'veinticuatro',
+  'veinticinco',
+  'veintiséis',
+  'veintisiete',
+  'veintiocho',
+  'veintinueve',
+]
+
+const TENS_WORDS = ['', '', 'veinte', 'treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa']
+
+const HUNDREDS_WORDS = [
+  '',
+  'ciento',
+  'doscientos',
+  'trescientos',
+  'cuatrocientos',
+  'quinientos',
+  'seiscientos',
+  'setecientos',
+  'ochocientos',
+  'novecientos',
+]
+
+const numberToSpanishWords = (value) => {
+  const integerValue = Math.trunc(Math.abs(Number(value) || 0))
+
+  if (integerValue < 30) {
+    return SMALL_NUMBER_WORDS[integerValue]
+  }
+
+  if (integerValue < 100) {
+    const tens = Math.trunc(integerValue / 10)
+    const remainder = integerValue % 10
+
+    return remainder === 0
+      ? TENS_WORDS[tens]
+      : `${TENS_WORDS[tens]} y ${numberToSpanishWords(remainder)}`
+  }
+
+  if (integerValue === 100) {
+    return 'cien'
+  }
+
+  if (integerValue < 1000) {
+    const hundreds = Math.trunc(integerValue / 100)
+    const remainder = integerValue % 100
+
+    return remainder === 0
+      ? HUNDREDS_WORDS[hundreds]
+      : `${HUNDREDS_WORDS[hundreds]} ${numberToSpanishWords(remainder)}`
+  }
+
+  if (integerValue < 1000000) {
+    const thousands = Math.trunc(integerValue / 1000)
+    const remainder = integerValue % 1000
+    const thousandsWords = thousands === 1 ? 'mil' : `${numberToSpanishWords(thousands)} mil`
+
+    return remainder === 0 ? thousandsWords : `${thousandsWords} ${numberToSpanishWords(remainder)}`
+  }
+
+  const millions = Math.trunc(integerValue / 1000000)
+  const remainder = integerValue % 1000000
+  const millionsWords = millions === 1 ? 'un millón' : `${numberToSpanishWords(millions)} millones`
+
+  return remainder === 0 ? millionsWords : `${millionsWords} ${numberToSpanishWords(remainder)}`
+}
+
+const formatAmountInWords = (value) => {
+  const numericValue = Math.round((Number(value) || 0) * 100) / 100
+  const integerValue = Math.trunc(numericValue)
+  const decimals = Math.round((numericValue - integerValue) * 100)
+  const amountInWords = numberToSpanishWords(integerValue)
+
+  if (decimals === 0) {
+    return amountInWords
+  }
+
+  return `${amountInWords} con ${String(decimals).padStart(2, '0')}/100`
+}
+
 const roundToSingleDecimal = (value) => Math.round((value + Number.EPSILON) * 10) / 10
 const normalizeSearchValue = (value) =>
   String(value || '')
@@ -1033,6 +1138,7 @@ function App() {
               <div>
                 <span>Total abonado</span>
                 <strong>{formatCurrency(totalPaid)} pesos argentinos</strong>
+                <small className="amount-in-words">({formatAmountInWords(totalPaid)})</small>
               </div>
               {showExtendedReceipt ? (
                 <>
