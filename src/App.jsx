@@ -368,8 +368,9 @@ function App() {
       amount: formatCurrency(totalPaid),
       date: formatDate(receiptDate),
       record: recordNumber || '---',
+      notes: notes.trim() || 'Sin observaciones',
     }),
-    [customerName, receiptDate, recordNumber, totalPaid],
+    [customerName, notes, receiptDate, recordNumber, totalPaid],
   )
 
   const suggestedClients = useMemo(() => {
@@ -1010,7 +1011,7 @@ function App() {
                 <span className="confirmation-eyebrow">Confirmación previa</span>
                 <h3 id="preview-confirmation-title">¿Desea generar la imagen de este recibo?</h3>
                 <p>
-                  Cliente: <strong>{confirmationSummary.customer}</strong>. Monto: <strong>{confirmationSummary.amount}</strong>. Fecha: <strong>{confirmationSummary.date}</strong>. Número de crédito: <strong>{confirmationSummary.record}</strong>.
+                  Cliente: <strong>{confirmationSummary.customer}</strong>. Monto: <strong>{confirmationSummary.amount}</strong>. Fecha: <strong>{confirmationSummary.date}</strong>. Número de crédito: <strong>{confirmationSummary.record}</strong>. Observación: <strong>{confirmationSummary.notes}</strong>.
                 </p>
                 <div className="confirmation-modal-actions">
                   <button
